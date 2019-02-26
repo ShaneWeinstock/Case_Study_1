@@ -1,0 +1,127 @@
+---
+title: "Brewskies"
+author: "Shane W."
+date: "February 16, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, Read Data and Libraries}
+booze <- read.csv("Beers.csv")
+brews <- read.csv("Breweries.csv")
+library(ggplot2)
+```
+
+
+
+Number of Breweries per state.
+
+```{r Statewise}
+
+BreweriesPerState <- as.data.frame(table(brews$State))
+
+colnames(BreweriesPerState) <- c("State","Number of Breweries")
+
+```
+
+
+
+Merging Two Files and Reporting first/last 6 rows.
+
+```{r, GreatMerger}
+
+colnames(booze)[1] <- "Beer Name"
+
+colnames(brews)[1] <- "Brewery_id"
+
+colnames(brews)[2] <- "Brewery Name"
+
+Crafts <- merge( x = booze, y = brews, by = "Brewery_id", all = TRUE)
+
+head(Crafts, n=6)
+
+tail(Crafts, n=6)
+
+```
+
+
+
+Reporting the data containing No Assessment
+
+```{r, NA Stuff}
+
+NA.ColTotal <- colSums(is.na(Crafts))
+
+NAInColumns <- matrix(,1,10)
+
+for (e in 1:ncol(Crafts)){
+
+  NumberNA <- sum(sapply(Crafts[,e],is.na))
+
+  NAInColumns[1,e] <- NumberNA
+
+}
+
+# Print Value
+
+NAInColumns
+
+```
+
+
+
+Median alcohol content and IBU for each state with bar plot.
+
+```{r, Computing the Median}
+
+medianbooze <- aggregate(Crafts[,c("ABV","IBU")],list(Crafts$State),median,na.rm=TRUE)
+
+colnames(medianbooze)[1] <- "State"
+
+medianbooze <- medianbooze[complete.cases(medianbooze),]
+
+par(las=2)
+
+MedianGraphics <- ggplot(data = medianbooze, aes(x = State, y = IBU, fill = ABV))+geom_bar(stat = "identity", position="dodge")+labs(title = "Median IBU and ABV of Beer by State", x = "State", y = "IBU")+theme(plot.title = element_text(hjust = 0.5))
+
+# Call Graph
+
+# >MedianGraphics
+
+```
+
+
+
+
+
+States with highest alcohol by volume (ABV) and Most Bitter (IBU) beers.
+
+```{r, top dogs}
+
+#Doesn't Return Max Value - need to re-evaluate code
+
+Crafts$State[which.max(Crafts$ABV)]
+
+Crafts$State[which.max(Crafts$IBU)]
+
+```
+
+
+
+Summary of Alcohol by Volume Variable
+
+```{r, Summary of ABV}
+
+summary(Crafts$ABV)
+
+```
