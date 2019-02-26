@@ -1,0 +1,235 @@
+---
+title: "Case_Study_1"
+author: "Tom Gianelle and Shane Weinstock"
+date: "2/18/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r sessioninfo, include=TRUE}
+sessionInfo()
+```
+
+```{r library, include=FALSE}
+library(DescTools)
+library(lemon)
+library(knitr)
+library(questionr)
+library(pastecs)
+library(usmap)
+library(ggplot2)
+library(openintro)
+library(rvest)
+library(tidyr)
+library(dplyr)
+library(RCurl)
+library(ngram)
+library(base)
+library(mapproj)
+```
+# Case Study 1 - Analysis for Company Beer O'Clock
+
+Our goal is to determine how Beer O'Clock's new product (high ABV and lower IBU) will compare with the  competition's products and if there is a correlation of ABV to IBU and ultimately discovering if that will have an impact on creating target product.
+
+We also would like to determine how this product will fare in some additional states. Please observe the code and descriptions below that outline our processes and procedures given specific market data.
+
+
+## Discovering How Many Breweries Exist in Each State
+
+```{r Q1, echo=TRUE}
+## set to lemon_print functions
+knit_print.data.frame <- lemon_print
+
+#setwd("~/Documents/SMU/Doing DS/Unit 7")
+breweries <- read.csv("Breweries.csv")
+beers <- read.csv("Beers.csv")
+
+## How many breweries are present in each state
+df.breweryByStateFreq <- Freq(breweries$State)
+brewery_count <- df.breweryByStateFreq[ ,1:2]
+## column names
+col_headings <- c("State", "# of Breweries")
+names(brewery_count) <- col_headings
+brewery_count
+```
+In this code chunk, we discover the frequency of breweries based on the data contained in our Breweries.csv file. The output after having run this computation is seen above.
+
+
+
+## Merging the Two Sets of Data
+
+```{r Q2, echo=TRUE}
+## merge
+colnames(beers)[1] <- "Beer Name"
+colnames(breweries)[1] <- "Brewery_id"
+colnames(breweries)[2] <- "Brewery Name"
+merge_files <- merge( x = breweries, y = beers, by = "Brewery_id", all = TRUE)
+mergehead <- head(merge_files, n=6)
+mergetail <- tail(merge_files, n=6)
+# Assigned variables so that we could print them to CSVs for presentation.
+mergehead
+mergetail
+```
+By merging these two sets of data by the column "Brewery ID" we are able to draw further analysis on these two related data sets.
+
+## Number of NA's in Each Column
+
+
+```{r Q3a, echo=TRUE}
+df <- data.frame(freq.na(merge_files))
+col_headings <- c("# of NA", "% of NA")
+names(df) <- col_headings
+df
+```
+While analyzing the data we discovered that there were many missing values which would prevent us from running future tests on the data. We revealed that there were 1005 missing values in IBU (amounting to around 42% of the data) and then 62 missing values in ABV (amounting to 3% of the data).
+
+We later went in and added data to this (effectively updating beers.csv) to include additional data about states of interest, lowering this number of unassigned values from 1005 in IBU to 974 and ABV from 62 to 57. This aided us greatly in our analysis of desired states and existing products. The data was pulled directly from the brewery websites.
+
+
+## Median Alcohol Content and International Bitterness Unit for Each State.
+
+
+```{r Q4, echo=TRUE}
+df_abv <- aggregate(merge_files$ABV, list(merge_files$State), median, na.rm = TRUE)
+col_headings <- c("State", "Median_ABV")
+names(df_abv) <- col_headings
+
+df_ibu <- aggregate(merge_files$IBU, list(merge_files$State), median, na.rm = TRUE)
+col_headings <- c("State", "Median_IBU")
+names(df_ibu) <- col_headings
+
+merge_bev_analysis <- merge(df_abv, df_ibu, by = "State")
+col_headings <- c("State", "Median_ABV", "Median_IBU")
+names(merge_bev_analysis) <- col_headings
+
+## median_bev_analysis <- aggregate(merge_files[,c("ABV","IBU")],list(merge_files$State),median,na.rm=TRUE)
+## colnames(median_bev_analysis)[1] <- "State"
+median_bev_analysis <- merge_bev_analysis[complete.cases(merge_bev_analysis),]
+par(las=2)
+MedianGraphics_ABV <- ggplot(data = median_bev_analysis, aes(x = State, y = Median_ABV, fill = Median_IBU))+geom_bar(stat = "identity", position="dodge")+labs(title = "Median IBU and ABV of Beer by State", x = "State", y = "IBU")+theme(plot.title = element_text(hjust = 0.5))
+MedianGraphics_ABV + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+MedianGraphics_IBU <- ggplot(data = median_bev_analysis, aes(x = State, y = Median_IBU, fill = Median_ABV))+geom_bar(stat = "identity", position="dodge")+labs(title = "Median IBU and Median ABV of Beer by State", x = "State", y = "IBU")+theme(plot.title = element_text(hjust = 0.5))
+MedianGraphics_IBU + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+After merging the data sets, we were able to create several comparisons and graphs. In this particular chunk of code, we have two bar graphs of Median IBU and ABV of the Beer by State, helping us further understand the competition we might find as we begin to produce a new beer in any particular state.
+
+## Discovering Which State has the Highest IBU and ABV
+
+
+```{r Q5a, echo=TRUE}
+merge_files[which.max(merge_files$ABV),]
+```
+Boulder, CO produces the highest ABV at 12.8% from brewery Upslope Brewing Company for beer Lee Hill Series Vol. 5 - a Belgian Style Quadrupel Ale.
+
+```{r Q5b, echo=TRUE}
+merge_files[which.max(merge_files$IBU), ]
+```
+Astoria, OR produces the highest IBU at 138 as an American Double/Imperial IPA from Astoria Brewing Company with a beer named the "Bitter Bitch Imperial IPA".
+
+## Summary statistics for the ABV variable.
+```{r Q6, echo=TRUE}
+summary(beers$ABV, na.rm = TRUE)
+##summary(beers$IBU, na.rm = TRUE)
+
+describe(beers$ABV, na.rm = TRUE)
+## describe(beers$IBU, na.rm = TRUE)
+
+density(beers$ABV,na.rm = TRUE)
+## density(beers$IBU, na.rm = TRUE)
+
+hist(merge_files$ABV)
+## hist(merge_files$IBU)
+plot(merge_bev_analysis$Median_ABV, type = "o")
+## plot(merge_bev_analysis$Median_IBU, type = "o")
+```
+
+In this code chunk we run some basic analysis on the merged data to further compare a future product and it's placement in the markets we're evaluating. Additionally, please note that the IBU variable was also evaluated, but as the question does not call for it directly, it has been commented out.
+
+## Correlations and Conclusions
+Lastly, we are asked to find if any correlation exists between IBU and ABV. We have done begun comparison between 
+```{r Q7, echo=TRUE}
+## scatterplots
+## require(stats)
+## reg<-lm(ABV ~ IBU, data = beers)
+## coeff=coefficients(reg)
+# equation of the line : 
+## eq = paste0("y = ", round(coeff[2],1), "*x ", round(coeff[1],1))
+# plot
+## plot(cars, main=eq)
+
+## plot(beers$ABV, beers$IBU, main=("Scatterplot: ABV vs IBU"), xlab = "ABV", ylab="IBU")
+## abline(lm(ABV ~ IBU, data = beers), col="blue")
+## plot(df$Median_ABV, df$Median_IBU, main=("ABV vs IBU Scatterplot"), xlab = "ABV", ylab="IBU")
+ggsp <- ggplot(data=beers, aes(x=ABV, y=IBU)) +
+    geom_point(shape=1)     # Use hollow circles
+    
+ggsp + geom_smooth(method=lm)
+## ggsp + geom_point(shape=1) +    # Use hollow circles
+##    geom_smooth()            # Add a loess smoothed fit curve with confidence region
+#> `geom_smooth()` using method = 'loess'
+
+df <- data.frame(merge_bev_analysis)
+## plot_usmap(data = df$State, values = "Median_ABV", lines = "blue") + 
+##  scale_fill_continuous(
+##    low = "white", high = "blue", name = "Median ABV", label = scales::comma
+##  ) + theme(legend.position = "right")
+
+us <- map_data("state")
+median_bev_state <- data.frame(abbr2state(trimws(as.character(median_bev_analysis$State), "l")), median_bev_analysis$Median_ABV, median_bev_analysis$Median_IBU)
+col_headings <- c("region", "Median_ABV", "Median_IBU")
+names(median_bev_state) <- col_headings
+arr <- median_bev_state %>% 
+##   add_rownames("region") %>% 
+mutate(region=tolower(region))
+## arr <- arr[,-1]
+
+gg <- ggplot()
+gg <- gg + geom_map(data=us, map=us,
+                    aes(x=long, y=lat, map_id=region),
+                    fill="#ffffff", color="#ffffff", size=0.15)
+gg <- gg + geom_map(data=arr, map=us,
+                    aes(fill=Median_ABV, map_id=region),
+                    color="#ffffff", size=0.15)
+gg <- gg + labs(x=NULL, y=NULL)
+gg <- gg + coord_map("albers", lat0 = 39, lat1 = 45) 
+gg <- gg + theme(panel.border = element_blank())
+gg <- gg + theme(panel.background = element_blank())
+gg <- gg + theme(axis.ticks = element_blank())
+gg <- gg + theme(axis.text = element_blank())
+gg
+
+gg <- ggplot()
+gg <- gg + geom_map(data=us, map=us,
+                    aes(x=long, y=lat, map_id=region),
+                    fill="#ffffff", color="#ffffff", size=0.15)
+gg <- gg + geom_map(data=arr, map=us,
+                    aes(fill=Median_IBU, map_id=region),
+                    color="#ffffff", size=0.15)
+gg <- gg + scale_fill_continuous(low='thistle2', high='darkred', 
+                                 guide='colorbar')
+gg <- gg + labs(x=NULL, y=NULL)
+gg <- gg + coord_map("albers", lat0 = 39, lat1 = 45) 
+gg <- gg + theme(panel.border = element_blank())
+gg <- gg + theme(panel.background = element_blank())
+gg <- gg + theme(axis.ticks = element_blank())
+gg <- gg + theme(axis.text = element_blank())
+gg
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+### Conclusions
+
+After computing the variations of IBU and ABV, we observed a 67% relationship between the two variables. Allowing us to conclude that there is statistical significance to believe that a higher level of hops (or bittering agent) will also yield us a generally higher ABV.
+
+Based on the data that is provided, we can conclude that:
+
+* Given the high (42%) of NA's in the data, it is difficult to provide any certainty on the entire brews population.  For the available data there did show a 67% correlation between ABV & IBU.
+
+* Colorado has the highest number of breweries in nation, and it's breweries produce beer with median ABV and IBU that are similar to your new product goals.
+
+* Matching a product that is highly produced in CO could provide a unique product opportunity to the company's other target markets (AR, LA, OK, TX).
