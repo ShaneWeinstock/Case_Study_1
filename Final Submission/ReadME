@@ -1,12 +1,12 @@
-This file contains our final submission for Case Study 1  
+*This file contains our final submission for Case Study 1  
 
 This repository was created by two contributors
-- Tom Gianelle
-- Shane Weinstock
+-Tom Gianelle
+-Shane Weinstock
 
 Sources: Two .csv files were used to create the reports contained in this repository. They are:
-- beers.csv
-- breweries.csv
+-beers.csv
+-breweries.csv
 
 The graders should note that there are several other folders within this repository, however this is the only folder that contains our actual submission.
 All other files/items were used in the creation of the products within this particular folder.
